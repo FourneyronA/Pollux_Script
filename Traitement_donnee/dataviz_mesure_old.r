@@ -39,16 +39,12 @@ DB_pol_lum <- dbConnect(RPostgres::Postgres(),  dbname = "Pollux_2",
 # 3 - Lecture des données  ====
 # . -------------------------------------------------------------------------- =============
 
+# requete sur la base de donnée
 Donnee_NSB <- dbGetQuery(DB_pol_lum, "SELECT date, time, nsb
                                       FROM donnee_capteur") 
 
-# . -------------------------------------------------------------------------- =============
-# 4 - Visualisation des données  ====
-# . -------------------------------------------------------------------------- =============
-
-# Visualisation sur la journée du 03/27
-
-DATA_03_27 <- Donnee_NSB %>%
+# remise en forme des données temporelle pour améliorer les rendu visuel
+Donnee_exploitable <- Donnee_NSB %>%
   mutate(date_ok = as_date(paste("2020/",str_sub(date, start = 6, end = 10),sep = "")),
          time_ok = hms::as_hms(time)) %>%
   filter(date_ok >= as.Date("2020-04-01") & date_ok <= as.Date("2020-04-30"))%>%
@@ -59,35 +55,51 @@ DATA_03_27 <- Donnee_NSB %>%
          s = as.numeric(str_sub(time_ok, start = 7, end = 8)),
          time_V2 = ifelse(daynight == date_ok,
                           as.numeric(h*3600+m*60+s),
-                          as.numeric((h+24)*3600+m*60+s)),
-         nsb_classif =  case_when(
-            nsb > 21.7 ~ "21.7",nsb > 21.5 ~ "21.5",nsb > 21.4 ~ "21.4",nsb > 21.3 ~ "21.3",nsb > 21.0 ~ "21.0",
-            nsb > 20.4 ~ "20.4",nsb > 19.1 ~ "19.1",nsb > 18.7 ~ "18.7",nsb > 18.0 ~ "18.0",nsb > 0 ~ "16.8"
-         ))
+                          as.numeric((h+24)*3600+m*60+s)))
 
 
+# . -------------------------------------------------------------------------- =============
+# 4 - Visualisation des données  ====
+# . -------------------------------------------------------------------------- =============
 
 brk_time <- c(seq(from = 68400, to = 107000, by = 3600))
 label_time <- c("19:00","20:00","21:00","22:00","23:00","00:00",
                 "01:00","02:00","03:00","04:00","05:00")
 
-# brk_color <- c("16.8","18.0","18.7","19.1","20.4","21.0","21.3","21.4","21.5","21.7")
-# label_color <- c("#960000", "#C80000", "#FF0000", "#FF3503", "#FF7C80", "#FFFF00", "#00CC00", "#01FFFF", "#0033CC", "#7F7F7F")
-# 
-# brk_color <- c("16.8","18.0","18.7","19.1","21.0")
-# label_color <- c("#960000", "#00CC00", "#01FFFF", "#0033CC", "#000000")
-
-ggplot(DATA_03_27, aes(y= time_V2, x = daynight ,color =nsb))+
+# Visualisation du NSB sur le mois d'avril 
+Donnee_exploitable %>%
+  ggplot(aes(y= time_V2, x = daynight ,color =nsb))+
   geom_point(alpha = 0.2, size =3)+
-  
-  scale_color_viridis(direction = -1,discrete = FALSE, option="magma")+
+    scale_color_viridis(direction = -1,discrete = FALSE, option="magma")+
   scale_y_continuous(breaks = brk_time, labels = label_time, name = "Heure")+
-  scale_x_date(breaks = c(seq(from = as.Date("2020-04-01"), to = as.Date("2020-04-30"), by = "days")), 
-               date_labels = "%d")+
+  scale_x_date(breaks = c(seq(from = as.Date("2020-04-01"), to = as.Date("2020-04-30"), by = "days")),date_labels = "%d")+
   theme_minimal()+
   theme(axis.text.x = element_text(angle=45, hjust = 1))
 
-  
+
+
+# Visualisation du NSB sur une journée 
+
+Donnee_exploitable %>%
+  filter(daynight >= as.Date("2020-04-04") & daynight <= as.Date("2020-04-04"))%>%
+  ggplot(aes(y=nsb , x = time_V2 ,color = nsb))+
+  geom_line(alpha = 0.8, lwd = 2)+
+  scale_color_viridis(direction = -1,discrete = FALSE, option="magma")+
+  scale_x_continuous(breaks = brk_time, labels = label_time, name = "Heure", limits = c((68400+3600),(107000-3600)))+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle=45, hjust = 1))
+
+
+# comparatif du NSB sur quelques jours
+
+Donnee_exploitable %>%
+  filter(daynight >= as.Date("2020-04-03") & daynight <= as.Date("2020-04-06"))%>%
+  ggplot(aes(y=nsb , x = time_V2 ,color = as.character(daynight)))+
+  geom_line(alpha = 0.8, lwd = 1)+
+  scale_x_continuous(breaks = brk_time, labels = label_time, name = "Heure", limits = c((68400+1800),(107000-1800)))+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle=45, hjust = 1))
+
 
 
     
