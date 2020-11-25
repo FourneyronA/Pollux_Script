@@ -106,7 +106,6 @@ for( i in 1:length(list_fichier_capteur)){ # lecture de chaque fichier CSV dans 
    }
   
    print(paste("Lecture des fichier :", round((i/length(list_fichier_capteur))*100,2) ,"%"))
-   
 }
 
 #enregistrement dans la BDD

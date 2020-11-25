@@ -70,9 +70,10 @@ label_time <- c("19:00","20:00","21:00","22:00","23:00","00:00",
 Donnee_exploitable %>%
   ggplot(aes(y= time_V2, x = daynight ,color =nsb))+
   geom_point(alpha = 0.2, size =3)+
-    scale_color_viridis(direction = -1,discrete = FALSE, option="magma")+
-  scale_y_continuous(breaks = brk_time, labels = label_time, name = "Heure")+
+  scale_color_viridis(direction = -1,discrete = FALSE, option="magma")+
+  scale_y_continuous(breaks = brk_time, labels = label_time)+
   scale_x_date(breaks = c(seq(from = as.Date("2020-04-01"), to = as.Date("2020-04-30"), by = "days")),date_labels = "%d")+
+  labs(title = "Analyse de visibilité du ciel proche de Tramoyes", y = "Heure", x = "jour du mois d'Avril 2020")+
   theme_minimal()+
   theme(axis.text.x = element_text(angle=45, hjust = 1))
 
@@ -83,9 +84,9 @@ Donnee_exploitable %>%
 Donnee_exploitable %>%
   filter(daynight >= as.Date("2020-04-04") & daynight <= as.Date("2020-04-04"))%>%
   ggplot(aes(y=nsb , x = time_V2 ,color = nsb))+
-  geom_line(alpha = 0.8, lwd = 2)+
+  geom_line(alpha = 0.8, lwd = 1)+
   scale_color_viridis(direction = -1,discrete = FALSE, option="magma")+
-  scale_x_continuous(breaks = brk_time, labels = label_time, name = "Heure", limits = c((68400+3600),(107000-3600)))+
+  scale_x_continuous(breaks = brk_time, labels = label_time, name = "Heure", limits = c((68400+1800),(107000-1800)))+
   theme_minimal()+
   theme(axis.text.x = element_text(angle=45, hjust = 1))
 
