@@ -32,7 +32,7 @@ drv <- dbDriver("PostgreSQL")
 # Creation de la connexion
 DB_pol_lum <- dbConnect(RPostgres::Postgres(),  dbname = "Pollux_2",
                         host = "localhost", port = 5432, # attention 5432 par d?faut
-                        user = "postgres", password = "benjibenji",
+                        user = "postgres", password = "XXXXXXXX",
                         options="-c search_path=meteo") # idem pour use
 
 
