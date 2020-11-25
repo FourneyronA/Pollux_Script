@@ -33,7 +33,7 @@ drv <- dbDriver("PostgreSQL")
 # Cr?ation de la connexion
 DB_pol_lum <- dbConnect(RPostgres::Postgres(),  dbname = "Pollux_2",
                         host = "localhost", port = 5432, # attention 5432 par d?faut
-                        user = "postgres", password = "benjibenji",
+                        user = "postgres", password = "********",
                         options="-c search_path=meteo") # idem pour use
 
 # . -------------------------------------------------------------------------- =============
@@ -43,7 +43,7 @@ lecture_openweather <- function(lat, long) {
 
 donnee_openweather<- data.frame() # preparation d'un tableau 
 
-requete <- paste("http://api.openweathermap.org/data/2.5/weather?lat=",lat,"&lon=",long,"&APPID=0a7ec99b7b8f5211e856953a0b07961f", sep = "")
+requete <- paste("http://api.openweathermap.org/data/2.5/weather?lat=",lat,"&lon=",long,"&APPID=XXXXXXXXXXXXXXX", sep = "")
 result <- fromJSON(file = requete)
 
 donnee_openweather <- as.data.frame(result)%>%
