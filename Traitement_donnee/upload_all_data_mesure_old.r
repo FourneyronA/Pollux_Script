@@ -13,9 +13,11 @@ library(sf)
 library(RPostgreSQL) 
 library(mapview)
 library(readr)
+library(readxl)
 library(stringr)
 library(lubridate)
 library(tidyverse)
+library(dplyr)
 
 
 # . -------------------------------------------------------------------------- =============
@@ -30,11 +32,7 @@ lapply(dbListConnections(drv = dbDriver("PostgreSQL")),
 drv <- dbDriver("PostgreSQL")
 
 # Creation de la connexion
-DB_pol_lum <- dbConnect(RPostgres::Postgres(),  dbname = "Pollux_2",
-                        host = "localhost", port = 5432, # attention 5432 par d?faut
-                        user = "postgres", password = "XXXXXXXX",
-                        options="-c search_path=meteo") # idem pour use
-
+source("C:/Users/fa101525/Desktop/GitHub/connect_bdd.R")
 
 # . -------------------------------------------------------------------------- =============
 # 3 - fonction lecture fichier/ecriture BDD ====
@@ -42,100 +40,124 @@ DB_pol_lum <- dbConnect(RPostgres::Postgres(),  dbname = "Pollux_2",
 
 
 lecture_dossier_capteur <- function(dossier) {
-  #dossier = paste(dossier_all_capteur,list_doc_capteur[3],sep = "/")
-  
+  #  dossier = paste(dossier_all_capteur,list_doc_capteur[1],sep = "/")
+  # dossier
+  # 
   ### DONNEES CAPTEUR DE MESURE  
-  #lecture fichier CSV
-  dossier_mesure_capteur =  dossier# dossier contenant l'ensemble des fichiers 
+
+  dossier_mesure_capteur =  dossier# dossier contenant l'ensemble des fichiers .DTA
   list_fichier_capteur <- dir(path = dossier_mesure_capteur) #liste l'ensemble des fichiers 
   length(list_fichier_capteur) # indique le nombre totale de fichier 
   
   setwd(dossier_mesure_capteur) 
   
-  donnee_capteur <- data.frame() # preparation d'un tableau 
-  
-  for( i in 1:length(list_fichier_capteur)){ # lecture de chaque fichier CSV dans le tableau 
- #i = 3
+  for( i in 1:length(list_fichier_capteur)){ # lecture de chaque fichier .DTA dans le tableau 
+    # i = 1
+    
     print(paste("Lecture des fichier :", round((i/length(list_fichier_capteur))*100,2) ,"%"))
     extention_fichier = str_sub(list_fichier_capteur[i], start = str_length(list_fichier_capteur[i])-3,end = str_length(list_fichier_capteur[i]) )
     list_fichier_capteur[i]
-    if(extention_fichier == ".DTA"){
-      if(ncol(read_delim(list_fichier_capteur[i],"$", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)) > 1){
+    
+    if(extention_fichier == ".DTA"){ # test extension fichier
+      if(ncol(read_delim(list_fichier_capteur[i],"$", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE)) > 1){ #test format fichier
       
-      site <- str_sub(dossier, start =  str_locate(dossier, "site")[1],end = str_length(dossier) )
+      site <- str_sub(dossier, start =  str_locate(dossier, "site")[1],end = str_length(dossier) ) #recuperation du site (sur le nom de dossier)
+      print(paste("Site :",site)) # affichage du site
       
+      # lecture du fichier .DTA
       lecture_fichier <- read_delim(list_fichier_capteur[i],"$", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE) %>%
         t() %>%
         data.frame() %>%
-        drop_na() %>%
-        rename(full_info = ".")
+        drop_na()
+      names(lecture_fichier) <- c("full_info") #rename nom de la colonne contenant l'ensemble des info
       
-      lecture_fichier <- lecture_fichier %>%
-        mutate(point_virgule = str_locate_all(full_info, ";"),
-               ID_ligne = seq.int(nrow(lecture_fichier))) %>%
-        unnest(point_virgule) %>%
-        group_by(ID_ligne) %>% 
-        mutate(col= paste("index", sep="_",seq_along(ID_ligne))) %>%
-        spread(key=col, value=point_virgule) %>%
-        mutate(
-          site_mesure = site,
-          fichier = list_fichier_capteur[i],
-          date = str_sub(full_info, start = index_1+1,end = index_2-1 ),      # year/month/day représente la date de la mesure.
-          time = str_sub(full_info, start = index_2 +1,end =index_3-1) ,      # hour:min:sec représente l'heure de la mesure.
-          on_time = as.numeric(str_sub(full_info, start = index_3+1,end =index_4-1)),   # onTime représente le temps (en secondes) depuis le démarrage de la carte.
-          sumRedLightCount = as.numeric(str_sub(full_info, start = index_4 +1,end =index_5-1)),  # sumRedLightCount
-          sumGreenLightCount = as.numeric(str_sub(full_info, start = index_5 +1,end =index_6-1)),  # sumGreenLightCount
-          sumBlueLightCount = as.numeric(str_sub(full_info, start = index_6 +1, end =index_7-1)),  # sumBlueLightCo
-          sumClearLightCount = as.numeric(str_sub(full_info, start = index_7 +1,end =index_8-1)),  # sumClearLightCount représentent la totalité des "ticks/impulsions" reçus pendant la période d’intégration principale (30s) pour chacune des composante
-          magVRed = as.double(str_sub(full_info, start = index_8 +1,end =index_9-1)),  # magVRed est la magnitude visuelle pour la composante rouge.
-          minRedFreq = as.double(str_sub(full_info, start = index_9 +1, end =index_10-1)),   # minRedFreq
-          sumRedFreq = as.double(str_sub(full_info, start = index_10 +1,end =index_11-1)),  # minGreenFreq
-          maxRedFreq = as.double(str_sub(full_info, start = index_11 +1,end =index_12-1)),   # minBlueFre
-          minGreenFreq = as.double(str_sub(full_info, start = index_12+1,end =index_13-1)),  # minClearFreq représentent la fréquence minimale mesurée pendant la période d’intégration pour chacune des composantes.
-          sumGreenFreq = as.double(str_sub(full_info, start = index_13 +1,end =index_14-1)),   # sumRedFreq
-          maxGreenFreq = as.double(str_sub(full_info, start = index_14 +1, end =index_15-1)),   # sumGreenFreq
-          minBlueFreq = as.double(str_sub(full_info, start = index_15 +1,end =index_16-1)),   # sumBlueFre
-          sumBlueFreq = as.double(str_sub(full_info, start = index_16 +1,end =index_17-1)),  # sumClearFreq représentent la moyenne des  fréquences (impulsion/s =Hz) pour la période d’intégration principale
-          maxBlueFreq = as.double(str_sub(full_info, start = index_17 +1,end =index_18-1)),  # sumClearFreq représentent la moyenne des  fréquences (impulsion/s =Hz) pour la période d’intégration principale
-          minClearFreq = as.double(str_sub(full_info, start = index_18 +1,end =index_19-1)),   # sumClearFreq représentent la moyenne des  fréquences (impulsion/s =Hz) pour la période d’intégration principale
-          sumClearFreq = as.double(str_sub(full_info, start = index_19 +1, end =index_20-1)),  # sumClearFreq représentent la moyenne des  fréquences (impulsion/s =Hz) pour la période d’intégration principale
-          maxClearFreq = as.double(str_sub(full_info, start = index_20 +1,end =index_21-1)),   # sumClearFreq représentent la moyenne des  fréquences (impulsion/s =Hz) pour la période d’intégration principale
-          nLightCount = as.double(str_sub(full_info, start = index_21 +1, end =index_22-1)),   # sumClearFreq représentent la moyenne des  fréquences (impulsion/s =Hz) pour la période d’intégration principale
-          totalIntegrationTime = as.double(str_sub(full_info, start = index_22 +1,end =index_23-1)),  # sumClearFreq représentent la moyenne des  fréquences (impulsion/s =Hz) pour la période d’intégration principale
-          nsb = -1.153*log(sumClearLightCount)+24.203 # La formule pour obtenir le NSB en mag/arcsec² est -1.153*log(sumClearLightCount)+24.203.
-        )
+      donnee_capteur <- data.frame() # preparation d'un tableau vierge
+  
+      for(j in 1:nrow(lecture_fichier)){ #s�paration des information pour chaque ligne du fichier DTA
+        out <- read.table(text = lecture_fichier[j,1], sep=";", fill = TRUE, 
+                          header = FALSE, stringsAsFactors = FALSE) #les donn�es sont s�par� par un ; dans la 1ere colonne
+        out <- out[,c(-1,-24)] # supression de la premiere et derniere colonne qui sont vide de base 
+        # renommer l'ensemble des colones
+        names(out) <- c("date","time","on_time",
+                        "sumredlightcount","sumgreenlightcount","sumbluelightcount","sumclearlightcount","magvred",
+                        "minredfreq","sumredfreq","maxredfreq",
+                        "mingreenfreq","sumgreenfreq","maxgreenfreq",
+                        "minbluefreq", "sumbluefreq","maxbluefreq",
+                        "minclearfreq", "sumclearfreq", "maxclearfreq",
+                        "nlightcount", "totalintegrationtime" )
+        
+        # ajout d'information dans le tableau
+        out <- out %>%
+          mutate(
+            site_mesure = site, #numero du site
+            fichier = list_fichier_capteur[i], #fichier d'extraction
+            nsb = -1.153*log(sumclearlightcount)+24.203 # La formule pour obtenir le NSB a partir des donnees
+          )
+        
+        # ajout de chaque ligne de lecture dans un tableau du fichier
+        donnee_capteur <- donnee_capteur %>%
+          rbind(out)
+      }
       
-      lecture_fichier <- lecture_fichier[,-1:-25]
-      
-      donnee_capteur <- donnee_capteur %>%
-        rbind(lecture_fichier)
+      # enregistrement dans une BDD
+      if (dbExistsTable(DB_pol_lum, "donnee_capteur")){ #si elle existe alors : 
+        st_write(obj = donnee_capteur, dsn = DB_pol_lum, layer = "donnee_capteur", append = TRUE)
+      } else{ #si elle existe pas alors :
+        requete_fichier_recep ="CREATE TABLE donnee_capteur (
+                        date text,time text,on_time integer,
+                        sumredlightcount bigint,sumgreenlightcount bigint,sumbluelightcount bigint, sumclearlightcount bigint,magvred double precision, 
+                        minredfreq double precision,sumredfreq double precision,maxredfreq double precision,
+                        mingreenfreq double precision,sumgreenfreq double precision,maxgreenfreq double precision,
+                        minbluefreq double precision, sumbluefreq double precision,maxbluefreq double precision,
+                        minclearfreq double precision, sumclearfreq double precision, maxclearfreq double precision,
+                        nlightcount bigint, totalintegrationtime bigint,
+                        site_mesure text,  fichier text, nsb double precision);"
+        dbExecute(DB_pol_lum, requete_fichier_recep)
+        
+        print(paste("Cr�ation table donnee_capteur fait"))
+        st_write(obj = donnee_capteur, dsn = DB_pol_lum, layer = "donnee_capteur", append = TRUE)
+      }
+
     }
     
     
     }
   }
-  
-  if (dbExistsTable(DB_pol_lum, "donnee_capteur")){ #si elle existe alors : 
-    st_write(obj = donnee_capteur, dsn = DB_pol_lum, layer = "donnee_capteur", append = TRUE)
-  } else{ #si elle existe pas alors :
-    st_write(obj = donnee_capteur, dsn = DB_pol_lum, layer = "donnee_capteur")
-  }
-  
 }
 
 # . -------------------------------------------------------------------------- =============
-# 4 - lancer le traitement des données  ====
+# 4 - lancer le traitement des donnees  ====
 # . -------------------------------------------------------------------------- =============
 
+# Lecture des donnees DTA des differents capteurs 
 
 dossier_all_capteur =  "C:/Users/fa101525/Desktop/Projet_Pollux/DATA_MESURE_1/data capteurs tot"# dossier contenant l'ensemble des fichiers 
 list_doc_capteur <- dir(path = dossier_all_capteur) #liste l'ensemble des fichiers 
 length(list_doc_capteur) # indique le nombre totale de fichier 
 
-
-for( i in 1:length(list_doc_capteur)){ # lecture de chaque fichier CSV dans le tableau  length(list_doc_capteur)
-
+list_doc_capteur[3]
+for( i in 1:length(list_doc_capteur)){ # lecture de chaque fichier DTA dans le tableau  length(list_doc_capteur)
+  
     print(paste("ECRITURE DU DOSSIER:", list_doc_capteur[i], " i = ", i))
     lecture_dossier_capteur(paste(dossier_all_capteur,list_doc_capteur[i],sep = "/"))
 
 }
+
+
+# lecture du fichier des references geographiques des capteurs 
+
+station_capteur <- read_excel("C:/Users/fa101525/Desktop/Projet_Pollux/DATA_MESURE_1/cordonnees gps oct2017_V2.xls") %>%
+  mutate(site_mesure_id = paste("site",capteur_V2)) %>%
+  st_as_sf(coords = c("X Lambert93 [m]", "Y Lambert93 [m]"), crs = 2154) 
+
+station_capteur <- station_capteur[,c(15,7,6,4,14,16)]
+names(station_capteur) <- c("site_mesure_id", "commune","lieu_dit","date", "altitude", "geometry" )
+
+if (dbExistsTable(DB_pol_lum, "station_capteur")){ #si elle existe alors : 
+  dbRemoveTable(DB_pol_lum, "station_capteur") # on la supprime
+  st_write(obj = station_capteur, dsn = DB_pol_lum, layer = "station_capteur") # on reecrit
+} else{ #si elle existe pas alors :
+  st_write(obj = station_capteur, dsn = DB_pol_lum, layer = "station_capteur")
+}
+
+
