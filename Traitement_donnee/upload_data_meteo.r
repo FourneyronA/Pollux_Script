@@ -12,10 +12,13 @@
 dossier_enregistrement_csv <- "C:/Users/fa101525/Desktop/Projet_Pollux/DATA_METEO/synop/test_automatik_save"
 #dossier_enregistrement_tiff <- "C:/Users/fa101525/Desktop/Projet_Pollux/DATA_METEO/synop/test_automatik_save"
 
-Nombre_jours_precendant <- 15
+### / ! \ VARIABLE A PARAMETRER / ! \ 
 
+# dossier ou serons stocker les fichiers CSV
+dossier_enregistrement_csv <- "C:/Users/fa101525/Desktop/Projet_Pollux/DATA_METEO/synop/test_automatik_save"
 
-date_fin = Sys.Date()%m-% days(7)
+# Date de debut et fin a telecharger (de base la semaine précédante)
+date_fin = Sys.Date()%m-% days(7) #
 date_debut = date_fin %m-% days(7)
 
 # . -------------------------------------------------------------------------- =============
@@ -24,10 +27,12 @@ date_debut = date_fin %m-% days(7)
 
 # url <- "https://geoservices.meteofrance.fr/api/__P9a9AG1DlYVB78ayodw5qqTgnb_1ty9WRy3oeZjBNSg__/MF-NWP-GLOBAL-ARPEGE-01-EUROPE-WCS?SERVICE=WCS&VERSION=2.0.1&REQUEST=GetCoverage&format=image/tiff&coverageId=LOW_CLOUD_COVER__GROUND_OR_WATER_SURFACE___2020-12-03T00:00:00Z&subset=time(2020-12-03T09:00:00Z)&subset=lat(45.085090577293315,46.076606690574565)&subset=long(4.002749385542207,5.985781612104707)"
 
+library(RPostgreSQL) 
 library(RCurl)
 library(dplyr) 
 library(tidyverse)
 library(lubridate) 
+library(stringr)
 library(sf)
 
 
@@ -43,15 +48,16 @@ lapply(dbListConnections(drv = dbDriver("PostgreSQL")),
 drv <- dbDriver("PostgreSQL")
 
 # Creation de la connexion
+# DB_pol_lum <- dbConnect(RPostgres::Postgres(), dbname = "XXXX", host = "XXXX", port = XXXX, user = "XXXX", password = "XXXX")
 source("C:/Users/fa101525/Desktop/GitHub/connect_bdd.R")
-
 
 # . -------------------------------------------------------------------------- =============
 # 3 - fonction lecture API/ecriture BDD ====
 # . -------------------------------------------------------------------------- =============
 
-
-
+# fonction qui permet d'interroger le site meteo france 
+# conversion du format des donnees 
+# enregistrement sur la base de donnees
 Requete_meteo_france_omm <- function(date, horaire) {
   
   
@@ -180,7 +186,7 @@ Requete_meteo_france_omm <- function(date, horaire) {
 }
 
 # . -------------------------------------------------------------------------- =============
-# 4 - lancer le telechargement des donnees dans le dossier  ====
+# 4 - lancer le telechargement des donnees dans le dossier et sur BDD  ====
 # . -------------------------------------------------------------------------- =============
 
 setwd(file.path(dossier_enregistrement_csv))
