@@ -11,6 +11,7 @@
 
 # Prochain objectif : telechargement automatiser des geotiff dans la BDD
 
+# url <- "https://geoservices.meteofrance.fr/api/__P9a9AG1DlYVB78ayodw5qqTgnb_1ty9WRy3oeZjBNSg__/MF-NWP-GLOBAL-ARPEGE-01-EUROPE-WCS?SERVICE=WCS&VERSION=2.0.1&REQUEST=GetCoverage&format=image/tiff&coverageId=LOW_CLOUD_COVER__GROUND_OR_WATER_SURFACE___2020-12-03T00:00:00Z&subset=time(2020-12-03T09:00:00Z)&subset=lat(45.085090577293315,46.076606690574565)&subset=long(4.002749385542207,5.985781612104707)"
 
 dossier_enregistrement_csv <- "C:/Users/fa101525/Desktop/Projet_Pollux/DATA_METEO/synop/test_automatik_save"
 #dossier_enregistrement_tiff <- "C:/Users/fa101525/Desktop/Projet_Pollux/DATA_METEO/synop/test_automatik_save"
@@ -204,3 +205,29 @@ while(date < date_fin){
   
   date <- date %m+% days(1)
 }
+
+
+# . -------------------------------------------------------------------------- =============
+# 5 - Ajout des stations de mesure ====
+# . -------------------------------------------------------------------------- =============
+
+if (!dbExistsTable(DB_pol_lum, "site_omm")){ #si BDD n'existe pas alors :
+  
+  # recherche du fichier sur le site internet 
+  url <- "https://donneespubliques.meteofrance.fr/donnees_libres/Txt/Synop/postesSynop.csv"
+  nom_fichier <- "C:/Users/fa101525/Desktop/Projet_Pollux/DATA_METEO/synop/postesSynop.csv"
+  
+  if (!file.exists(nom_fichier)){ #si le fichier n'est pas téléchargé alors :
+    download.file(url,destfile= nom_fichier, mode = 'wb')
+    Sys.sleep(1)
+  }
+
+  # lecture du fichier en format geom
+  site_mesure <- read.csv(nom_fichier, sep=";",na.strings="mq")%>%
+    st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326)
+      #mapview::mapview(site_mesure)
+  
+  # enregistrement du fichier sur la bdd 
+  st_write(obj = site_mesure, dsn = DB_pol_lum, layer = "site_omm", append = TRUE)
+
+} 
