@@ -3,7 +3,7 @@
 # 0 - Lecture des donnees Meteo France ====
 # . -------------------------------------------------------------------------- =============
 
-# Le script a pour objectif de convertir les donnees meteo france disponible en CSV dans une BDD spatiale. 
+# Le script a pour objectif de convertir les donnees meteo france dans une BDD spatiale (les données peuvent être des fichier local, ou des requête sur le web). 
 # ATTENTION il est imperatif d'adapter les parties suivantes : 
 # 2 - Variable et parametre : (emplacement des fichiers)
 # 3 - Connexion BDD postGIS : (connexion a votre base de donnee)
@@ -11,20 +11,22 @@
 # Nous avons deux type de donnees : 
 # - Les stations de mesures georeferencer : https://donneespubliques.meteofrance.fr/donnees_libres/Txt/Synop/postesSynop.csv
 # - Les mesures des stations : https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=90&id_rubrique=32
-# - Les deplacements des nuages géoreferencer : https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=130&id_rubrique=51
+# - Les deplacements des nuages gï¿½oreferencer : https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=130&id_rubrique=51
 
 # . -------------------------------------------------------------------------- =============
 # 1 - Librairie ====
 # . -------------------------------------------------------------------------- =============
 
-library(RPostgreSQL) 
-library(RCurl)
-library(dplyr) 
-library(tidyverse)
-library(lubridate) 
-library(stringr)
-library(sf)
-library(raster)
+pkgs <-  c("dplyr","tidyverse","lubridate","stringr", "RCurl", "RPostgreSQL", "raster","sf") # "rgdal", "tidyr", "tiff"
+
+if (length(setdiff(pkgs, rownames(installed.packages()))) > 0) {
+  # installation des packages 
+  install.packages(setdiff(pkgs, rownames(installed.packages())))  
+} 
+# chargement des packages 
+lapply(pkgs, library, character.only = TRUE)
+rm(pkgs)
+
 
 # . -------------------------------------------------------------------------- =============
 # 2 - / ! \ Variable et parametre / ! \  ====
@@ -38,6 +40,7 @@ source("C:/Users/fa101525/Desktop/GitHub/token_meteofrance.R")
 # Date de debut et fin a telecharger (en fonction de la date du jour) 
 # Les donnes ne sont diponibles que pendant un certain moment, il faut donc relancer le script tout les 4 jours maximum
 # Le script peut etre lancer tout les jours, il verifie si les donnees sont presente ou non avant de lancer le telechargement
+# Si vos donnees sont enregistrer dans un dossier en local, n'hesitez pas a indiquer les dates que vous souhaitez.
 
 date_debut = Sys.Date() %m-% days(4) # Debut 4 jours avant aujourd'hui
 date_fin = date_debut %m+% days(3)   # Fin 1 jours avant aujourd'hui
@@ -49,7 +52,6 @@ date_fin = date_debut %m+% days(3)   # Fin 1 jours avant aujourd'hui
 ## Supressions de toutes les connexions precedentes
 lapply(dbListConnections(drv = dbDriver("PostgreSQL")),
        function(x) {dbDisconnect(conn = x)})
-
 # type de connexion PostgreSQL
 drv <- dbDriver("PostgreSQL")
 
@@ -123,7 +125,7 @@ Requete_meteo_france_omm <- function(date, horaire) {
 
     if (ncol(fichier_2) < 2) {
       
-      print(paste("DONNEES NON DISPONIBLE AU : ",date," à ",horaire,"h" ))
+      print(paste("DONNEES NON DISPONIBLE AU : ",date," ï¿½ ",horaire,"h" ))
  
     } else {
       list_colum <- colnames(fichier_2) %>%
@@ -157,10 +159,10 @@ Requete_meteo_france_omm <- function(date, horaire) {
     
   
   } else{
-    print(paste("Donnees dejà presente dans la BDD" ))
+    print(paste("Donnees dejï¿½ presente dans la BDD" ))
   }
 }
-
+# recuperation des geotiff disponible (TOKEN necessaire)
 Requete_meteo_france_nuage <- function(date, emprise, type_donnee) { 
   
   # date <-  Sys.Date()%m-% days(4)
@@ -210,7 +212,7 @@ Requete_meteo_france_nuage <- function(date, emprise, type_donnee) {
       
       
       if (nb_donnee_BDD == nb_geom){
-        print(paste("Donnees dejà presente"))
+        print(paste("Donnees deja presente"))
       }
       
       if (nb_donnee_BDD > 0 & nb_geom < nb_donnee_BDD){
@@ -310,7 +312,7 @@ Requete_meteo_france_nuage <- function(date, emprise, type_donnee) {
     }
     
   }else {
-    print(paste("Donnees dejà presente"))
+    print(paste("Donnees deja presente"))
   }
   
 }
@@ -325,7 +327,7 @@ date <- date_debut
 while(date < date_fin){
   
   for(heure in c("00","03","06","09","12","15","18","21")){
-    print(paste("Lancement telechargement donnees meteo france du : ",day(date),"/",month(date),"/",year(date)," à ",heure,"h" ))
+    print(paste("Lancement telechargement donnees meteo france du : ",day(date),"/",month(date),"/",year(date)," ï¿½ ",heure,"h" ))
     Requete_meteo_france_omm(date,heure)
   }
   date <- date %m+% days(1)
@@ -364,8 +366,11 @@ if (!dbExistsTable(DB_pol_lum, "site_omm")){ #si BDD n'existe pas alors :
 date <- date_debut
 
 while(date < date_fin){
+  # Zone d'étude 
   emprise <- c("44.449999724439457","45.950000000000003","3.649999999999999","6.650000794500522")
+  # Telechargement des nuages bas (< 2500m altitude)
   Requete_meteo_france_nuage(date,emprise, "LOW_CLOUD_COVER__GROUND_OR_WATER_SURFACE___")
+  # Telechargement des octas en générale (tout nuage confondue)
   Requete_meteo_france_nuage(date,emprise, "TOTAL_CLOUD_COVER__GROUND_OR_WATER_SURFACE___")
   date <- date %m+% days(1)
 }

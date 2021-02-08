@@ -124,6 +124,7 @@ Requete_meteo_france_nuage <- function(date, emprise, type_donnee) {
   file_name <- paste(annee,mois,jours, sep = "_")
   file_geotiff <- paste0(file_name, "/",type_name,"donnee_geotiff_", sep = "")
   
+  date_ref <- paste(annee,"-",mois,"-",jours,"T00:00:00Z", sep ="")
 
   if(!dir.exists(file_name)){
     print(paste0("Création du dossier : ",file_name))
@@ -135,7 +136,7 @@ Requete_meteo_france_nuage <- function(date, emprise, type_donnee) {
     dir.create(file_geotiff)
   } 
 
-  date_ref <- paste(year(date),"-",sprintf("%02d", month(date)),"-",sprintf("%02d", day(date)),"T00:00:00Z", sep ="")
+   #date_ref <- paste(year(date),"-",sprintf("%02d", month(date)),"-",sprintf("%02d", day(date)),"T00:00:00Z", sep ="")
 
   if (length(dir(path = file_geotiff)) < 24){
     
@@ -193,6 +194,14 @@ while(date < date_fin){
 # . -------------------------------------------------------------------------- =============
 
 
+date <- date_debut
+
+while(date < date_fin){
+  emprise <- c("44.449999724439457","45.950000000000003","3.649999999999999","6.650000794500522")
+  Requete_meteo_france_nuage(date,emprise, "LOW_CLOUD_COVER__GROUND_OR_WATER_SURFACE___")
+  Requete_meteo_france_nuage(date,emprise, "TOTAL_CLOUD_COVER__GROUND_OR_WATER_SURFACE___")
+  date <- date %m+% days(1)
+}
 
 # if(!is.null(warnings())){
 #   message <- names(last.warning)
