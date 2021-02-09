@@ -8,9 +8,9 @@
 # par rapport a une ville entre deux dates 
 # aucune limitation de temporalite, si certaine periode sont deja presente dans votre bdd, l'ajout n'est pas realise
 
-lieux = "lyon" #lyon #grenoble #saint-etienne
-date_debut = as.Date(x ="01/01/2018", format = c("%d/%m/%Y"))
-date_fin = as.Date(x ="01/04/2021", format = c("%d/%m/%Y"))
+lieux = "grenoble" #lyon #grenoble #saint-etienne
+date_debut = as.Date(x ="01/01/2020", format = c("%d/%m/%Y"))
+date_fin = as.Date(x ="01/12/2021", format = c("%d/%m/%Y"))
 
 
 # . -------------------------------------------------------------------------- =============

@@ -3,31 +3,31 @@
 # 0 - Lecture des donnees Meteo France ====
 # . -------------------------------------------------------------------------- =============
 
-# Le script a pour objectif de téléchargé les donnees meteo france disponible en CSV/tiff 
+# Le script a pour objectif de telecharge les donnees meteo france disponible en CSV/tiff 
 # ATTENTION il est imperatif d'adapter les parties suivantes : 
 # 2 - Variable et parametre : (emplacement des fichiers)
 
 # Nous avons deux type de donnees : 
 # - Les stations de mesures georeferencer : https://donneespubliques.meteofrance.fr/donnees_libres/Txt/Synop/postesSynop.csv
 # - Les mesures des stations : https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=90&id_rubrique=32
-# - Les deplacements des nuages géoreferencer : https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=130&id_rubrique=51
+# - Les deplacements des nuages georeferencer : https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=130&id_rubrique=51
 
-# Si vous souhaitez mettre les donnees telechargee directement dans une base de donnee regarder le script "upload_donnee_meteo.R"
-
-# Si vous souhaitez mettre les donnees telechargee par la suite dans une base de donnee regarder le script "upload_fichier_meteo.R"
+# Si vous souhaitez mettre les donnees telechargee directement dans une base de donnee regarder le script "upload_data_meteo.R"
 
 
 # . -------------------------------------------------------------------------- =============
 # 1 - Librairie ====
 # . -------------------------------------------------------------------------- =============
 
-library(RCurl)
-library(dplyr) 
-library(tidyverse)
-library(lubridate) 
-library(stringr)
-library(sf)
-library(raster)
+pkgs <-  c("dplyr","tidyverse","lubridate","stringr", "RCurl", "RPostgreSQL", "raster","sf") # "rgdal", "tidyr", "tiff"
+
+if (length(setdiff(pkgs, rownames(installed.packages()))) > 0) {
+  # installation des packages 
+  install.packages(setdiff(pkgs, rownames(installed.packages())))  
+} 
+# chargement des packages 
+lapply(pkgs, library, character.only = TRUE)
+rm(pkgs)
 
 # . -------------------------------------------------------------------------- =============
 # 2 - / ! \ Variable et parametre / ! \  ====
@@ -67,12 +67,12 @@ Requete_meteo_france_omm <- function(date, horaire) {
   file_omm <- paste0(file_name, "/donnee_omm",  sep = "")
 
   if(!dir.exists(file_name)){
-    print(paste0("Création du dossier : ",file_name))
+    print(paste0("Creation du dossier : ",file_name))
     dir.create(file_name)
   } 
   
   if(!dir.exists(file_omm)){
-    print(paste0("Création du dossier : ",file_omm))
+    print(paste0("Creation du dossier : ",file_omm))
     dir.create(file_omm)
   } 
   
@@ -109,7 +109,7 @@ Requete_meteo_france_omm <- function(date, horaire) {
 }
 
 # recuperation des geometry des nuages (avec indication des octas)
-# Var save_on_file 3 possibilité : si = 1 save dans BDD, si = 2 save dans fichier SHP, si = 3 save dans BDD et SHP
+# Var save_on_file 3 possibilite : si = 1 save dans BDD, si = 2 save dans fichier SHP, si = 3 save dans BDD et SHP
 Requete_meteo_france_nuage <- function(date, emprise, type_donnee) { 
     # date <-  Sys.Date()%m-% days(3)
   
@@ -124,19 +124,18 @@ Requete_meteo_france_nuage <- function(date, emprise, type_donnee) {
   file_name <- paste(annee,mois,jours, sep = "_")
   file_geotiff <- paste0(file_name, "/",type_name,"donnee_geotiff_", sep = "")
   
-  date_ref <- paste(annee,"-",mois,"-",jours,"T00:00:00Z", sep ="")
 
   if(!dir.exists(file_name)){
-    print(paste0("Création du dossier : ",file_name))
+    print(paste0("Creation du dossier : ",file_name))
     dir.create(file_name)
   } 
   
   if(!dir.exists(file_geotiff)){
-    print(paste0("Création du dossier : ",file_geotiff))
+    print(paste0("Creation du dossier : ",file_geotiff))
     dir.create(file_geotiff)
   } 
 
-   #date_ref <- paste(year(date),"-",sprintf("%02d", month(date)),"-",sprintf("%02d", day(date)),"T00:00:00Z", sep ="")
+  date_ref <- paste(year(date),"-",sprintf("%02d", month(date)),"-",sprintf("%02d", day(date)),"T00:00:00Z", sep ="")
 
   if (length(dir(path = file_geotiff)) < 24){
     
@@ -203,6 +202,20 @@ while(date < date_fin){
   date <- date %m+% days(1)
 }
 
+
+
+### Notes ====
+
+# Les differents geotiff disponible 
+
+# type_donnee <- "LOW_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
+# type_donnee <- "MEDIUM_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
+# type_donnee <- "TOTAL_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
+# type_donnee <- "HIGH_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
+# type_donnee <- "TOTAL_SNOW_PRECIPITATION__GROUND_OR_WATER_SURFACE___"
+
+# Relancer un script en cas d'erreur
+
 # if(!is.null(warnings())){
 #   message <- names(last.warning)
 #   pos_err <- str_locate(message, "HTTP status was ")[2]
@@ -217,17 +230,9 @@ while(date < date_fin){
 #     print(paste("Erreur de type", type_erreur))
 #   }
 #   
-#   
 # }else {
 #   print(paste("Toutes les donnees sont telecharger dans le fichier :",dossier_enregistrement_csv))
 # }
-
-
-# type_donnee <- "LOW_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
-# type_donnee <- "MEDIUM_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
-# type_donnee <- "TOTAL_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
-# type_donnee <- "HIGH_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
-# type_donnee <- "TOTAL_SNOW_PRECIPITATION__GROUND_OR_WATER_SURFACE___"
 
 
 
