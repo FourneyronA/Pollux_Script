@@ -172,7 +172,7 @@ Requete_meteo_france_nuage <- function(date, emprise, type_donnee) {
 }
 
 # . -------------------------------------------------------------------------- =============
-# 5 - lancer le telechargement des donnees dans le dossier et sur BDD  ====
+# 4 - lancer le telechargement des donnees dans le dossier et sur BDD  ====
 # . -------------------------------------------------------------------------- =============
 
 
@@ -189,7 +189,7 @@ while(date < date_fin){
 
 
 # . -------------------------------------------------------------------------- =============
-# 7 - telechargement des Geotiff des nuages ====
+# 5 - telechargement des Geotiff des nuages ====
 # . -------------------------------------------------------------------------- =============
 
 
@@ -204,35 +204,26 @@ while(date < date_fin){
 
 
 
-### Notes ====
-
-# Les differents geotiff disponible 
-
-# type_donnee <- "LOW_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
-# type_donnee <- "MEDIUM_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
-# type_donnee <- "TOTAL_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
-# type_donnee <- "HIGH_CLOUD_COVER__GROUND_OR_WATER_SURFACE___"
-# type_donnee <- "TOTAL_SNOW_PRECIPITATION__GROUND_OR_WATER_SURFACE___"
 
 # Relancer un script en cas d'erreur
-
-# if(!is.null(warnings())){
-#   message <- names(last.warning)
-#   pos_err <- str_locate(message, "HTTP status was ")[2]
-#   type_erreur <- str_sub(message, (pos_err+1), str_length(message))
-#   
-#   if(type_erreur == "'503 Service Unavailable'"){
-#     print("Relance du script dans 1min")
-#     Sys.sleep(60)
-#     source(file = "C:/Users/fa101525/Desktop/GitHub/Pollux_Script/Traitement_donnee/download_fichier_meteo.r")
-#     
-#   } else {
-#     print(paste("Erreur de type", type_erreur))
-#   }
-#   
-# }else {
-#   print(paste("Toutes les donnees sont telecharger dans le fichier :",dossier_enregistrement_csv))
-# }
+if(!is.null(warnings())){
+  message <- names(last.warning)
+  pos_err <- str_locate(message, "HTTP status was ")[2]
+  type_erreur <- str_sub(message, (pos_err+1), str_length(message))
+  
+  
+  if(!is.na(type_erreur)){
+    
+    print(paste("ATTENTION une Erreur de type : ", type_erreur))
+    print("Merci de bien vouloir relancer le script")
+    
+  }else {
+    print(paste("Toutes les donnees sont telecharger dans le fichier :",dossier_enregistrement_csv))
+  }
+  
+}else {
+  print(paste("Toutes les donnees sont telecharger dans le fichier :",dossier_enregistrement_csv))
+}
 
 
 
